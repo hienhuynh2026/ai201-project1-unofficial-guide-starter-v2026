@@ -63,7 +63,12 @@ class _OnnxEmbedder:
     def __init__(self):
         from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
 
-        self._ef = ONNXMiniLM_L6_V2()
+        # CPU on purpose. Left to itself, Chroma hands onnxruntime every
+        # provider it can find, and on a Mac that puts CoreML first — which
+        # fails to compile this model and takes the whole `index` run down
+        # with "Error executing model ... (error code: -1)". The model is
+        # small and 88 chunks embed in a couple of seconds on CPU anyway.
+        self._ef = ONNXMiniLM_L6_V2(preferred_providers=["CPUExecutionProvider"])
 
     def encode(self, texts, show_progress_bar: bool = False):
         return [vector.tolist() for vector in self._ef(list(texts))]
