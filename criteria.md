@@ -23,8 +23,11 @@ For at least 4 of my 5 test questions, the retrieved chunks include one that
 contains the answer.
 
 **Why this target:**
-<!-- e.g. "One of my questions is about a topic only two documents mention, so
-     I expect that one to be hard." -->
+
+Two of my questions are hard on purpose: seven laundry documents look almost
+identical, and seven housing documents say the library is open until 2am, which
+could hide the reading-week hours. I expect one of those to miss, so 5 of 5
+would be optimistic.
 
 ---
 
@@ -33,8 +36,10 @@ contains the answer.
 Every answer the system produces names at least one source document.
 
 **Why this target:**
-<!-- Why all five and not four? What about your setup makes that achievable —
-     or what would have to go wrong for it not to be? -->
+
+All five, because every excerpt in the prompt is labelled with its filename and
+the model is told twice to name the file it used. I judge this on the model's
+own answer, not the "Sources retrieved" line the app always prints.
 
 ---
 
@@ -50,48 +55,48 @@ in at least 4 of 5 tries.
      just keep five of them, or the "4 of 5" above has nothing to be 4 of. -->
 
 **Why this target:**
-<!-- What did your distances look like when you set the cutoff in Milestone 4?
-     Was there a clean gap, or did the two groups overlap? -->
+
+My test questions scored 0.320 to 0.427 and the out-of-scope ones 0.825 to
+0.934, a clean gap with the 0.6 cutoff in between. I kept 4 of 5 rather than
+5 of 5 because any chunking change in Milestone 3 will shift these distances.
 
 ---
 
-## 4. Something about your chunks
+## 4. Chunks are big enough to keep their subject
 
-<!-- YOU WRITE THIS ONE.
-
-     How would you know if your chunks were the right size? Name something
-     countable or observable.
-
-     Examples of the right shape — don't copy these, they should come from
-     what you actually saw in Milestone 3:
-       - "At least 4 of 5 sampled chunks read as a complete thought, with no
-          sentence cut in half at either end."
-       - "No chunk is shorter than 200 characters, since anything below that
-          in my corpus turned out to be a heading with no content under it." -->
-
-
+No chunk is too small to know what it is about: every chunk keeps the course,
+building, dining hall, or topic from its document's title. Among the 32
+documents that name their subject only in their first line, zero chunks lose
+that subject.
 
 **Why this target:**
 
-
+32 of my 88 documents name their subject only in the title, so a chunk cut from
+the body of "Laundry in Morrow House" would hold a dryer price for no building
+at all. I chose zero rather than "most" because each chunk that fails makes
+that document's facts impossible to find or attribute.
 
 ---
 
-## 5. Your choice
+## 5. Answers come from the right document, not a look-alike
 
-<!-- YOU WRITE THIS ONE TOO.
+When I ask about one specific building or course, the answer uses that
+building's or course's facts and cites its document, not a similar-looking one.
+At least 4 of these 5 questions get the correct fact and the matching source:
 
-     Pick something you actually care about getting right. It could be about
-     speed, about refusals, about a particular kind of question your corpus
-     handles badly, about source attribution being correct rather than merely
-     present — anything, as long as it names a number or an observable
-     outcome. -->
-
-
+- How much does a dryer cost in Morrow House? ($1.25)
+- How do you pay for laundry in Old Brewhouse? (coin only)
+- Which floors are quiet floors in Aldridge Hall? (3 and 4)
+- How many hours a week does BIOL 160 take? (9 to 11)
+- How is MATH 220 curved? (to a B- median)
 
 **Why this target:**
 
-
+Criterion 2 only checks that a source is named, but 32 of my documents are near
+copies (all seven laundry documents share three identical sentences), so
+retrieval can easily return the wrong building. I set 4 of 5 because I expect
+the look-alikes to cause one miss, and fewer than 4 would mean the system can't
+be trusted on the topics my documents say students ask about most.
 
 ---
 
