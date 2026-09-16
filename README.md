@@ -118,14 +118,34 @@ The good: cheapest housing tier by about $900 a year, and the singles are real s
 <!-- One complete question and answer, pasted as text, with the source line
      visible. Milestone 4. -->
 
-**Question:**
+**Question:** How much does it cost to use a dryer in Morrow House?
 
 **Answer:**
 
 ```
+  (best distance 0.275, cutoff 0.6)
+
+It costs $1.25 to use a dryer in Morrow House (sources:
+housing_morrow_house_laundry.txt and housing_morrow_house.txt).
+
+Sources retrieved: housing_aldridge_hall_laundry.txt,
+housing_innisfree_hall_laundry.txt, housing_morrow_house.txt,
+housing_morrow_house_laundry.txt, housing_old_brewhouse_laundry.txt
 ```
 
-**My relevance cutoff:**
+The same command on an out-of-scope question is stopped by the gate before the
+model runs, so it costs no model call:
+
+```
+$ python app.py ask "What is the capital of Mongolia?"
+  (best distance 0.787, cutoff 0.6)
+
+I don't have enough information about that.
+
+0 model calls this session
+```
+
+**My relevance cutoff:** 0.6
 
 <!-- The number you set in config.py, and how you got there.
 
@@ -136,9 +156,25 @@ The good: cheapest housing tier by about $900 a year, and the singles are real s
 
      Milestone 4. -->
 
+I kept the starter's 0.6 after re-measuring, because my Milestone 3 chunker
+moved every distance. My five in-corpus questions scored 0.244 to 0.385 and the
+five out-of-corpus ones scored 0.787 to 0.923, so the gap runs from 0.385 to
+0.787 with nothing inside it and 0.6 sits close to its midpoint of 0.586. I
+tried every cutoff from 0.45 to 0.75 and all of them answer 5 of 5 in-corpus
+questions and refuse 5 of 5 out-of-corpus ones, so 0.6 needs no change.
+
 | Question | In corpus? | Best distance |
 |---|---|---|
-|  |  |  |
+| How much printing credit do students get each semester? | yes | 0.385 |
+| Which place on campus has real espresso? | yes | 0.366 |
+| What is the last week you can drop a course? | yes | 0.332 |
+| How much does it cost to use a dryer in Morrow House? | yes | 0.275 |
+| How late is the library open during reading week? | yes | 0.244 |
+| What is the capital of Mongolia? | no | 0.787 |
+| How do I change the oil in a diesel engine? | no | 0.923 |
+| Who won the 1994 World Cup? | no | 0.847 |
+| What is the recommended dosage of ibuprofen for a headache? | no | 0.849 |
+| How do I write a for loop in Rust? | no | 0.860 |
 
 ## How I Used AI
 
