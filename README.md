@@ -22,11 +22,7 @@
 
 ## What This Does
 
-<!-- Three or four sentences. Which corpus you picked, and the kinds of
-     questions your system answers. Write it for someone who has never seen
-     this repo.
-
-     Milestone 5. -->
+The Unofficial Guide is a command-line tool that answers student life questions using the 88-post campus_life corpus covering housing, dining, courses, and campus rules. When a user runs python app.py ask "your question", the system searches for relevant paragraphs within the posts. If no content closely matches the query, it immediately returns "I don't have enough information about that" to prevent hallucinated answers for out-of-scope questions. Otherwise, a language model generates an answer using only the retrieved snippets and explicitly cites the source file for each fact.
 
 ## Chunking Strategy
 
@@ -187,9 +183,9 @@ questions and refuse 5 of 5 out-of-corpus ones, so 0.6 needs no change.
 
      Milestone 5. -->
 
-**1.**
+**1.** When python app.py index crashed during embedding, Claude traced the error to onnxruntime attempting to use Apple's CoreML provider on an Intel Mac, which cannot run the model. To fix it, Claude pinned the embedder to CPUExecutionProvider in store.py. I then asked for the exact before and after of that single line to report the starter-code issue to the teaching staff rather than just keeping the local patch.
 
-**2.**
+**2.** I had Claude replace split_documents in chunker.py with a paragraph-based chunker that appends each post's title to every chunk. Finally, I verified the output against criterion 4 to confirm that all 183 generated chunks successfully retained their subject names before committing.
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
