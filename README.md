@@ -515,30 +515,51 @@ but a corpus with a narrower gap would not have room for this fix.
 
      Milestone 5. -->
 
-All five criteria are met, so nothing is broken by the measure of my own
-targets. Two real problems are still there anyway.
+After the fix, no criterion is still MISSED. All five met their targets on all
+three runs of the after log, so the per-criterion template below has no entries
+for a missed criterion. Two real defects survive anyway, and both sit inside
+criterion 5, which passes only because my five questions do not happen to cover
+them. I am writing them up in the same format rather than claiming nothing is
+left.
 
-The first is the one my fix only papered over. Questions that name a course by
-its code alone are much weaker matches than the same question with the course
-name attached. Across all nine courses, asking "How is X curved?" gives
-distances from 0.387 to 0.614, while adding the course name brings the same
-questions down to 0.231 to 0.454. Raising the cutoff caught the one case that
-crossed my line, but a longer or vaguer question about a course code could still
-land beyond 0.65.
+**Defect 1: questions that name a course by its code alone**
 
-The second is worse, because it produces a confident wrong answer rather than a
-refusal. "How is CS 210 curved?" returns course_cs_340_exams.txt as its closest
-chunk at 0.5384, which passed the gate before my change and still passes it now.
-None of my five criterion 5 questions happened to cover that case, so it never
-showed up in a score.
+- **Criterion:** 5. Answers come from the right document, not a look-alike.
+- **Current result:** 5 of 5 on all three after runs, against a target of 4 of
+  5. It passes, but only because raising the cutoff pulled the one failing
+  question back over the line.
+- **Likely cause:** embedding. The all-MiniLM-L6-v2 model carries a code like
+  "MATH 220" weakly next to ordinary words, so the distance stays high even when
+  the ranking is right. Across all nine courses, "How is X curved?" gives
+  distances of 0.387 to 0.614, while the same question with the course name
+  attached gives 0.231 to 0.454.
+- **What I would do next:** put both the course code and the course name into
+  every chunk of a course document, so "MATH 220" and "Linear Algebra" are both
+  present whichever one the question uses. The same idea applies to buildings.
+- **Why I stopped:** that is a chunker change, and it would move every distance
+  in the corpus, so the cutoff would need re-measuring and both run logs would
+  need redoing. I had already made one change this week and wanted the before
+  and after runs to stay comparable. Changing two things at once would have left
+  me unable to say which one helped.
 
-What I would do about it: put both the course code and the course name into
-every chunk of a course document, so that "MATH 220" and "Linear Algebra" are
-both present no matter which one the question uses. That is a chunker change,
-which would move every distance in the corpus and would mean re-measuring the
-cutoff and re-running everything. I stopped short of it because I had already
-made one change this week and wanted the before and after runs to be comparable.
-Changing two things at once would have left me unable to say which one helped.
+**Defect 2: a confident wrong answer about a course I did not test**
+
+- **Criterion:** 5. Answers come from the right document, not a look-alike.
+- **Current result:** not measured by my five questions, so it does not appear
+  in any score. "How is CS 210 curved?" returns course_cs_340_exams.txt as its
+  closest chunk at 0.5384, which passed the gate before my change and still
+  passes now.
+- **Likely cause:** the same embedding weakness as defect 1, but worse in
+  effect. Here the bare code does not push the distance over the cutoff, it just
+  lets a different course rank first, so the system answers confidently from the
+  wrong document instead of refusing.
+- **What I would do next:** the same chunker change, and then widen my criterion
+  5 question set so it covers a course whose look-alike is a different course
+  rather than a different building.
+- **Why I stopped:** I found this while diagnosing, after my questions and
+  targets were already committed, and the week 2 rules say the original
+  criterion stays as written. Swapping in new questions mid-week would have
+  changed what the before and after numbers even mean.
 
 ## What I'd Do Differently
 
