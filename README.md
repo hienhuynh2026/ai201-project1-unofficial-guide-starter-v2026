@@ -367,6 +367,88 @@ course is "Curved to a b- median".
 
      Milestone 3. -->
 
+No criterion came out MISSED. All five held on all three runs, so what follows
+is a diagnosis of the one question that failed inside a criterion that still
+met its target, plus an honest look at whether my targets were set too low.
+
+### The one real failure
+
+**Criterion:** 5. Answers come from the right document, not a look-alike.
+
+**Failing question:** "How is MATH 220 curved?" It failed on all three runs.
+
+**What came back:** "I don't have enough information about that." The corpus
+does answer this. course_math_220_exams.txt says the course is "Curved to a b-
+median."
+
+**Stage:** embedding, showing up at the gate in retrieval.
+
+**Mechanism:** the question names the course by its bare code, and the
+all-MiniLM-L6-v2 embedding carries a code like "MATH 220" weakly compared with
+words that have ordinary meaning. Retrieval still ranked correctly: the top two
+chunks are both MATH 220, so no look-alike document won. What failed is the
+absolute distance. The best chunk sits at 0.6142, my cutoff is 0.6, and the gate
+compares the absolute number rather than the ranking, so it refused a question
+whose answer was sitting in the number one result.
+
+**Evidence:** the top of the ranking for that question, from store.py::search.
+
+```
+1. 0.6142  course_math_220.txt#0        MATH 220 Linear Algebra / I lived here my sophomore year...
+2. 0.6156  course_math_220_exams.txt#0  MATH 220 Linear Algebra — assessment / Two midterms and a
+                                        cumulative final. Curved to a b- median.
+3. 0.6342  course_cs_210.txt#0          CS 210 Data Structures / ...
+```
+
+Adding the course name to the same question drops the distance below the cutoff
+and the question is answered:
+
+```
+0.6142  REFUSED  'How is MATH 220 curved?'
+0.4544  passes   'How is MATH 220 Linear Algebra curved?'
+0.3615  passes   'How is MATH 220 Linear Algebra graded?'
+```
+
+My Milestone 3 chunker did not cause this. Rebuilding the index with the
+starter's fallback_split and asking the same question gives 0.6196, slightly
+worse than my 0.6142, so both chunkers land above the cutoff.
+
+### The pattern
+
+This is one root cause, not one unlucky question. Asking "How is X curved?" for
+all nine courses in the corpus shows bare course codes sitting far higher than
+the same questions with the course name attached:
+
+```
+bare code:       0.3868 to 0.6142   (1 of 9 refused: MATH 220 at 0.6142)
+code plus name:  0.2305 to 0.4544   (0 of 9 refused)
+```
+
+MATH 220 is simply the one that crosses the line. The same mechanism produces a
+second failure my five criterion 5 questions never caught: "How is CS 210
+curved?" returns course_cs_340_exams.txt as its top result at 0.5384, which is a
+wrong course answered confidently because it passes the gate. So the pattern is
+short questions that identify a course or building by code alone, where the
+embedding has little to work with and distances drift toward the cutoff.
+
+### Were my targets set too low?
+
+Partly, yes. Criterion 4 is the weakest of the five. It passes by construction,
+because my chunker puts the title on every chunk, so zero failures was
+guaranteed the moment the code was written. It is a useful regression guard
+against a future chunking change, but it did not test anything this week.
+Criteria 1 and 3 also passed with room to spare: criterion 1 came out 5 of 5
+against a target of 4 of 5, with the answer ranked first every time, and
+criterion 3 refused 5 of 5 with the closest out-of-corpus question at 0.787
+against a 0.6 cutoff.
+
+The one I would tighten is criterion 5, from 4 of 5 to 5 of 5. It is the only
+criterion that exposed a real defect, and holding it at 4 of 5 lets a permanent
+failure sit inside a passing score. I would also make criterion 3 harder by
+replacing questions from a different world entirely with near misses, such as
+asking about a building that is not in my corpus, since those would land near
+the cutoff instead of 0.2 above it.
+
 ## The Improvement
 
 **What I changed:**
