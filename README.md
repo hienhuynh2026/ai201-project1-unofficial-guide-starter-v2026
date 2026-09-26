@@ -212,13 +212,117 @@ questions and refuse 5 of 5 out-of-corpus ones, so 0.6 needs no change.
 
      Milestone 1. -->
 
+Results file: `results/run_2026-09-26_1146_before.md`, produced by
+`run_eval.py::main` (3 runs per question, caching off).
+
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks are big enough to keep their subject | 0 lose it | 0/183 | 0/183 | 0/183 | MET |
+| 5. Answers come from the right document, not a look-alike | 4 of 5 | 4/5 | 4/5 | 4/5 | MET |
+
+Criteria 1, 3 and 4 are measured by retrieval and chunking, which are
+deterministic, so one pass is the whole measurement and the same number goes in
+all three columns. Criteria 2 and 5 depend on the generated answer and were
+measured on all three runs.
+
+How I judged criterion 5, since there is no scorer.py yet: an answer passes if
+it states the correct fact and cites the document for the building or course
+asked about. I applied that by reading, so run 2's "with coins only" counts the
+same as "coin only". A literal string match would have scored that run 3 of 5,
+which is a fact about my string matching and not about the system.
+
+### Criterion 1: retrieved chunk contains the answer
+
+Source: Run 1, `store.py::search`. The check is whether the `expects` phrase
+from `questions.py` appears in any of the five retrieved chunks.
+
+```
+  PASS  $30        How much printing credit do students get each semester?
+        found in: admin_printing_quota.txt#0
+  PASS  Ridgeway   Which place on campus has real espresso?
+        found in: dining_the_ridgeway_cafe.txt#0
+  PASS  six        What is the last week you can drop a course?
+        found in: admin_add_drop_deadline.txt#0, admin_withdrawal_deadline.txt#0
+  PASS  $1.25      How much does it cost to use a dryer in Morrow House?
+        found in: housing_morrow_house_laundry.txt#0, housing_morrow_house.txt#3
+  PASS  10pm       How late is the library open during reading week?
+        found in: study_library_hours.txt#0
+  -> 5/5
+```
+
+### Criterion 2: every answer names a source
+
+Source: Run 2, `generate.py::answer_from_chunks`. All 15 answers named at least
+one file in the model's own text. Two of them:
+
+```
+Students get $30 of printing per semester.
+
+Source: admin_printing_quota.txt
+```
+
+```
+It costs $1.25 to use a dryer in Morrow House (housing_morrow_house.txt and
+housing_morrow_house_laundry.txt).
+```
+
+### Criterion 3: the gate stops out-of-corpus questions
+
+Source: Run 1, `run_eval.py::check_out_of_scope` calling `gate.py::check`,
+cutoff 0.6. No model call was made for any of these.
+
+```
+| What is the capital of Mongolia? | 0.787 | refused |
+| How do I change the oil in a diesel engine? | 0.923 | refused |
+| Who won the 1994 World Cup? | 0.847 | refused |
+| What is the recommended dosage of ibuprofen for a headache? | 0.849 | refused |
+| How do I write a for loop in Rust? | 0.860 | refused |
+-> gate refused 5 of 5
+```
+
+### Criterion 4: chunks are big enough to keep their subject
+
+Source: `chunker.py::split_documents`. Every chunk from the 32 documents that
+name their subject only in the title was checked for that subject.
+
+```
+  183 chunks total; 64 from the 32 title-only documents
+  chunks that lost their subject: 0
+```
+
+### Criterion 5: answers come from the right document, not a look-alike
+
+Source: Run 1, `store.py::search` then `generate.py::answer_from_chunks`. Four
+of five passed on every run, and the same question failed all three times.
+
+```
+[PASS] How much does a dryer cost in Morrow House?  (dist 0.275)
+  A dryer in Morrow House costs $1.25.
+
+  Source: housing_morrow_house_laundry.txt (also found in housing_morrow_house.txt)
+
+[PASS] How do you pay for laundry in Old Brewhouse?  (dist 0.233)
+  Laundry in Old Brewhouse is coin only.
+
+  Source: housing_old_brewhouse.txt (and housing_old_brewhouse_laundry.txt)
+
+[PASS] Which floors are quiet floors in Aldridge Hall?  (dist 0.251)
+  Floors 3 and 4 are the quiet floors in Aldridge Hall (housing_aldridge_hall_noise.txt).
+
+[PASS] How many hours a week does BIOL 160 take?  (dist 0.301)
+  BIOL 160 takes 9 to 11 hours a week (source: course_biol_160.txt and course_biol_160_workload.txt).
+
+[FAIL] How is MATH 220 curved?  (dist 0.614)
+  I don't have enough information about that.
+```
+
+The failure is not a wrong building or a wrong course. The best chunk for "How
+is MATH 220 curved?" sits at 0.614, just above my 0.6 cutoff, so the gate
+refused a question my corpus does answer: course_math_220_exams.txt says the
+course is "Curved to a b- median".
 
 <!-- Underneath, paste the REAL output for each criterion from one of your
      runs — the actual text your system produced, not a description of it.
@@ -237,11 +341,11 @@ questions and refuse 5 of 5 out-of-corpus ones, so 0.6 needs no change.
 
 | # | Criterion | Verdict | How I decided |
 |---|---|---|---|
-| 1 |  |  |  |
-| 2 |  |  |  |
-| 3 |  |  |  |
-| 4 |  |  |  |
-| 5 |  |  |  |
+| 1 | Retrieved chunk contains the answer | MET | Target was 4 of 5 and all three runs hit 5 of 5. Retrieval is deterministic, so the same questions return the same chunks every run. |
+| 2 | Every answer names a source | MET | Target was every answer, and all 15 answers across the three runs named at least one file in the model's own text, not just in the "Sources retrieved" line the app prints. |
+| 3 | Gate stops out-of-corpus questions | MET | Target was 4 of 5 and the gate refused 5 of 5, with the closest out-of-corpus distance at 0.787 against a 0.6 cutoff. |
+| 4 | Chunks are big enough to keep their subject | MET | Target was zero failures, and zero of the 64 chunks from my 32 title-only documents lost their subject. |
+| 5 | Answers come from the right document, not a look-alike | MET | Target was 4 of 5 and every run came out 4 of 5, so it holds on all three runs rather than just some. It only just holds: the same question fails every time, and it fails because the gate refuses it at 0.614, not because a look-alike document won. |
 
 ## Diagnoses
 
