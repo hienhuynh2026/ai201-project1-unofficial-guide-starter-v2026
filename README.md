@@ -451,9 +451,17 @@ the cutoff instead of 0.2 above it.
 
 ## The Improvement
 
-**What I changed:**
+**What I changed:** I raised the relevance cutoff in config.py from 0.6 to
+0.65. That is the only change. The chunker, the prompt, top-k and the questions
+are all exactly as they were for the before run.
 
-**Why I picked it:**
+**Why I picked it:** My diagnosis above found one question that failed on all
+three runs, "How is MATH 220 curved?", and the reason was not a wrong document
+winning. The right chunk was ranked first, but its distance was 0.6142 and my
+cutoff was 0.6, so the gate threw away a question the corpus answers. My own
+measurements showed an empty gap between 0.385 and 0.787, so moving the cutoff
+to 0.65 lets that question through while still leaving a wide margin before the
+closest out-of-corpus question at 0.787.
 
 <!-- Connect it to a specific diagnosis above in one sentence. If you can't,
      you picked a fix because it sounded impressive. -->
@@ -463,15 +471,32 @@ the cutoff instead of 0.2 above it.
 <!-- Same format, same five criteria, three runs each.
      `python run_eval.py --label after` -->
 
+Results file: `results/run_2026-09-27_0058_after.md`, produced by
+`run_eval.py::main` with the cutoff at 0.65.
+
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1. Retrieved chunk contains the answer | 4 of 5 |  |  |  |  |
-| 2. Every answer names a source | 5 of 5 |  |  |  |  |
-| 3. Gate stops out-of-corpus questions | 4 of 5 |  |  |  |  |
-| 4. | | | | | |
-| 5. | | | | | |
+| 1. Retrieved chunk contains the answer | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 2. Every answer names a source | 5 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 3. Gate stops out-of-corpus questions | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
+| 4. Chunks are big enough to keep their subject | 0 lose it | 0/183 | 0/183 | 0/183 | MET |
+| 5. Answers come from the right document, not a look-alike | 4 of 5 | 5/5 | 5/5 | 5/5 | MET |
 
-**Did it help?**
+**Did it help?** Yes, and only where I expected it to. Criterion 5 went from
+4 of 5 on every run to 5 of 5 on every run, because the MATH 220 question is now
+answered instead of refused, and the answer is correct: "MATH 220 is curved to a
+B- median (source: course_math_220.txt and course_math_220_exams.txt)." Nothing
+else moved. Criteria 1 and 4 are decided by retrieval and chunking, which this
+change does not touch, and criterion 2 stayed at 15 answers out of 15 naming a
+file. Criterion 3 also held, because the closest out-of-corpus question sits at
+0.787 and the cutoff is still well below it, so the gate refused all five.
+
+The honest limit of this fix is that it treats the symptom. The real problem is
+that questions naming a course only by its code embed poorly, and moving the
+cutoff does nothing about that. It also spends some of my safety margin: the
+distance between my cutoff and the nearest out-of-corpus question shrank from
+0.187 to 0.137. I accepted that because the gap I measured is wide and empty,
+but a corpus with a narrower gap would not have room for this fix.
 
 <!-- Say plainly whether it did, and how you know. If it made things worse,
      say that — a change that backfired, honestly reported, earns full credit
@@ -490,9 +515,56 @@ the cutoff instead of 0.2 above it.
 
      Milestone 5. -->
 
+All five criteria are met, so nothing is broken by the measure of my own
+targets. Two real problems are still there anyway.
+
+The first is the one my fix only papered over. Questions that name a course by
+its code alone are much weaker matches than the same question with the course
+name attached. Across all nine courses, asking "How is X curved?" gives
+distances from 0.387 to 0.614, while adding the course name brings the same
+questions down to 0.231 to 0.454. Raising the cutoff caught the one case that
+crossed my line, but a longer or vaguer question about a course code could still
+land beyond 0.65.
+
+The second is worse, because it produces a confident wrong answer rather than a
+refusal. "How is CS 210 curved?" returns course_cs_340_exams.txt as its closest
+chunk at 0.5384, which passed the gate before my change and still passes it now.
+None of my five criterion 5 questions happened to cover that case, so it never
+showed up in a score.
+
+What I would do about it: put both the course code and the course name into
+every chunk of a course document, so that "MATH 220" and "Linear Algebra" are
+both present no matter which one the question uses. That is a chunker change,
+which would move every distance in the corpus and would mean re-measuring the
+cutoff and re-running everything. I stopped short of it because I had already
+made one change this week and wanted the before and after runs to be comparable.
+Changing two things at once would have left me unable to say which one helped.
+
 ## What I'd Do Differently
 
 <!-- Knowing what you know now — which of your five criteria would you write
      differently, and why?
 
      Milestone 5. -->
+
+Criterion 4 is the one I would rewrite. It asks that no chunk lose the subject
+named in its document title, and my chunker puts that title on every chunk, so
+the criterion could not fail once the code was written. It is a useful guard
+against a future chunking change, but it told me nothing this week. I would
+replace it with something my current pipeline could actually fail, such as
+requiring that a chunk contain the whole of any fact it mentions, since a fact
+split across two chunks is the failure mode that chunking really risks.
+
+Criterion 5 is the one I would tighten, from 4 of 5 to 5 of 5. It was the only
+criterion that found a real defect, and at 4 of 5 a permanent failure was able
+to sit inside a passing score for three straight runs. After the fix it reaches
+5 of 5 anyway, so the stricter target costs nothing now and would catch the next
+regression.
+
+I would also change criterion 2 and criterion 3. Criterion 2 only asks that an
+answer name a source, which every answer did on all six runs, so it never
+discriminated. It should ask that the answer name the file that actually
+contains the fact. Criterion 3 uses out-of-corpus questions from a different
+world entirely, and they scored 0.787 and above against a cutoff of 0.65, so the
+gate was never under pressure. Questions about a building or a course my corpus
+does not include would land much closer to the line and would be a real test.
